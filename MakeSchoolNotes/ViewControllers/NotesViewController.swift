@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import Realm
+import RealmSwift
 
 class NotesViewController: UIViewController {
 
