@@ -12,6 +12,7 @@ import RealmSwift
 class NotesViewController: UIViewController {
     
     @IBAction func unwindToSegue(segue: UIStoryboardSegue) {
+        
         // Returns the root controller to the front of the stack
         if let identifier = segue.identifier {
             let realm = Realm()
@@ -44,6 +45,8 @@ class NotesViewController: UIViewController {
         let realm = Realm()
         super.viewDidLoad()
         tableView.dataSource = self
+        tableView.dataSource = self
+        tableView.delegate = self
         
         notes = realm.objects(Note).sorted("modificationDate", ascending: false)
     }
@@ -69,6 +72,34 @@ extension NotesViewController: UITableViewDataSource {
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return Int(notes?.count ?? 0)
+    }
+    
+}
+
+extension NotesViewController: UITableViewDelegate {
+    func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        var selectedNote = notes[indexPath.row]      //1
+        // self.performSegueWithIdentifier("ShowExistingNote", sender: self)     //2
+    }
+    
+    // 3
+    func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+        return true
+    }
+    
+    // 4
+    func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+        if editingStyle == .Delete {
+            let note = notes[indexPath.row] as Object
+            
+            let realm = Realm()
+            
+            realm.write() {
+                realm.delete(note)
+            }
+            
+            notes = realm.objects(Note).sorted("modificationDate", ascending: false)
+        }
     }
     
 }
