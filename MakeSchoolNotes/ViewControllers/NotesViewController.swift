@@ -11,6 +11,26 @@ import RealmSwift
 
 class NotesViewController: UIViewController {
     
+    @IBAction func unwindToSegue(segue: UIStoryboardSegue) {
+        // Returns the root controller to the front of the stack
+        if let identifier = segue.identifier {
+            let realm = Realm()
+            switch identifier {
+            case "Save":
+                let source = segue.sourceViewController as! NewNotesViewController //1
+                
+                realm.write() {
+                    realm.add(source.currentNote!)
+                }
+                
+            default:
+                println("No one loves \(identifier)")
+            }
+            
+            notes = realm.objects(Note).sorted("modificationDate", ascending: false) //2
+        }
+    }
+    
     @IBOutlet weak var tableView: UITableView!
     
     var notes: Results<Note>! {
@@ -21,16 +41,11 @@ class NotesViewController: UIViewController {
     }
 
     override func viewDidLoad() {
+        let realm = Realm()
         super.viewDidLoad()
         tableView.dataSource = self
-        let myNote = Note()
-        myNote.title   = "Super Simple Test Note"
-        myNote.content = "A long piece of content"
-        let realm = Realm() // 1
-        realm.write() { // 2
-            realm.add(myNote) // 3
-        }
-        notes = realm.objects(Note)
+        
+        notes = realm.objects(Note).sorted("modificationDate", ascending: false)
     }
 
     override func didReceiveMemoryWarning() {
