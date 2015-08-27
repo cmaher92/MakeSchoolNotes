@@ -6,10 +6,12 @@
 //  Copyright (c) 2015 MakeSchool. All rights reserved.
 //
 
-import UIKit
 import RealmSwift
+import UIKit
+import ConvenienceKit
 
 class NotesViewController: UIViewController {
+    var selectedNote: Note?
     
     @IBAction func unwindToSegue(segue: UIStoryboardSegue) {
         
@@ -23,6 +25,13 @@ class NotesViewController: UIViewController {
                 realm.write() {
                     realm.add(source.currentNote!)
                 }
+            case "Delete":
+                realm.write() {
+                    realm.delete(self.selectedNote!)
+                }
+                
+                let source = segue.sourceViewController as! NoteDisplayViewController
+                source.note = nil;
                 
             default:
                 println("No one loves \(identifier)")
@@ -42,18 +51,27 @@ class NotesViewController: UIViewController {
     }
 
     override func viewDidLoad() {
-        let realm = Realm()
         super.viewDidLoad()
         tableView.dataSource = self
-        tableView.dataSource = self
         tableView.delegate = self
-        
+    }
+    
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        let realm = Realm()
         notes = realm.objects(Note).sorted("modificationDate", ascending: false)
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
+    }
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if (segue.identifier == "ShowExistingNote") {
+            let noteViewController = segue.destinationViewController as! NoteDisplayViewController
+            noteViewController.note = selectedNote
+        }
     }
 
 }
@@ -79,7 +97,7 @@ extension NotesViewController: UITableViewDataSource {
 extension NotesViewController: UITableViewDelegate {
     func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         var selectedNote = notes[indexPath.row]      //1
-        // self.performSegueWithIdentifier("ShowExistingNote", sender: self)     //2
+        self.performSegueWithIdentifier("ShowExistingNote", sender: self)     //2
     }
     
     // 3
