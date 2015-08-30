@@ -18,17 +18,26 @@ class NoteDisplayViewController: UIViewController {
     @IBOutlet weak var deleteButton: UIBarButtonItem!
     @IBOutlet weak var toolbarBottomSpace: NSLayoutConstraint!
     
-    var edit: Bool!
+    var edit = false
     
     var keyboardNotificationHandler: KeyboardNotificationHandler?
     
     var note: Note? {
         didSet {
-            displayNote(note)
+            displayNote(self.note)
         }
     }
 
     override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        self.navigationController!.setNavigationBarHidden(false, animated: true)
+        
+        displayNote(note)
+        
+        titleTextField.returnKeyType = .Next //1
+        titleTextField.delegate = self       //2
+        
         keyboardNotificationHandler = KeyboardNotificationHandler()
         
         keyboardNotificationHandler!.keyboardWillBeHiddenHandler = { (height: CGFloat) in
@@ -37,18 +46,19 @@ class NoteDisplayViewController: UIViewController {
                 self.view.layoutIfNeeded()
             }
         }
-        super.viewWillAppear(animated)
         
-        displayNote(self.note)
-        
-        titleTextField.returnKeyType = .Next //1
-        titleTextField.delegate = self //2
+        keyboardNotificationHandler!.keyboardWillBeHiddenHandler = { (height: CGFloat) in
+            UIView.animateWithDuration(0.3){
+                self.toolbarBottomSpace.constant = -height
+                self.view.layoutIfNeeded()
+            }
+        }
         
         if edit {
             deleteButton.enabled = false
         }
     }
-    
+        
 
     //MARK: Business Logic
     
@@ -68,6 +78,7 @@ class NoteDisplayViewController: UIViewController {
         
         saveNote()
     }
+    
     func saveNote() {
         if let note = note {
             let realm = Realm()

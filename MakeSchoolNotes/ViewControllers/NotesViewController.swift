@@ -11,6 +11,34 @@ import UIKit
 import ConvenienceKit
 
 class NotesViewController: UIViewController {
+    @IBOutlet weak var searchBar: UISearchBar!
+    @IBOutlet weak var tableView: UITableView!
+    
+    enum State {
+        case DefaultMode
+        case SearchMode
+    }
+    
+    var state: State = .DefaultMode {
+        didSet {
+            // updates notes and search bar whenever State changes
+            switch (state) {
+            case .DefaultMode:
+                let realm = Realm()
+                notes = realm.objects(Note).sorted("modificationDate", ascending: false) //1
+                self.navigationController!.setNavigationBarHidden(false, animated: true) //2
+                searchBar.resignFirstResponder()                                         //3
+                searchBar.text = ""
+                searchBar.showsCancelButton = false
+            case .SearchMode:
+                let searchText = searchBar?.text ?? ""
+                searchBar.setShowsCancelButton(true, animated: true)                     //4
+                notes = searchNotes(searchText)                                          //5
+                self.navigationController!.setNavigationBarHidden(true, animated: true)  //6
+            }
+        }
+    }
+    
     var selectedNote: Note?
     
     @IBAction func unwindToSegue(segue: UIStoryboardSegue) {
@@ -41,15 +69,16 @@ class NotesViewController: UIViewController {
         }
     }
     
-    @IBOutlet weak var tableView: UITableView!
     
     var notes: Results<Note>! {
         didSet {
             // Whenever notes update, update the table view
-            tableView?.reloadData()
+            if let tableView = tableView {
+                tableView.reloadData()
+            }
         }
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
@@ -57,9 +86,11 @@ class NotesViewController: UIViewController {
     }
     
     override func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
+        
         let realm = Realm()
         notes = realm.objects(Note).sorted("modificationDate", ascending: false)
+        state = .DefaultMode // setting to default
+        super.viewWillAppear(animated)
     }
 
     override func didReceiveMemoryWarning() {
@@ -72,6 +103,13 @@ class NotesViewController: UIViewController {
             let noteViewController = segue.destinationViewController as! NoteDisplayViewController
             noteViewController.note = selectedNote
         }
+    }
+    
+    //Mark: Search
+    func searchNotes(searchString: String) -> Results<Note> {
+        let realm = Realm()
+        let searchPredicate = NSPredicate(format: "title CONTAINS[c] %@ OR content CONTAINS[c] %@", searchString, searchString)
+        return realm.objects(Note).filter(searchPredicate)
     }
 
 }
@@ -96,7 +134,7 @@ extension NotesViewController: UITableViewDataSource {
 
 extension NotesViewController: UITableViewDelegate {
     func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        var selectedNote = notes[indexPath.row]      //1
+        selectedNote = notes[indexPath.row]      //1
         self.performSegueWithIdentifier("ShowExistingNote", sender: self)     //2
     }
     
@@ -107,7 +145,7 @@ extension NotesViewController: UITableViewDelegate {
     
     // 4
     func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-        if editingStyle == .Delete {
+        if (editingStyle == .Delete) {
             let note = notes[indexPath.row] as Object
             
             let realm = Realm()
@@ -119,6 +157,22 @@ extension NotesViewController: UITableViewDelegate {
             notes = realm.objects(Note).sorted("modificationDate", ascending: false)
         }
     }
-    
 }
+
+extension NotesViewController: UISearchBarDelegate {
+    
+    func searchBarTextDidBeginEditing(searchBar: UISearchBar) {
+        state = .SearchMode
+    }
+    
+    func searchBarCancelButtonClicked(searchBar: UISearchBar) {
+        state = .DefaultMode
+    }
+    
+    func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
+        notes = searchNotes(searchText)
+    }
+}
+
+
 
